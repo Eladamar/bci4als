@@ -8,9 +8,17 @@ import numpy as np
 from matplotlib.figure import Figure
 from mne.channels import make_standard_montage
 from mne.decoding import CSP
+from mne_features.feature_extraction import extract_features
+
 from nptyping import NDArray
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.pipeline import Pipeline
+from sklearn.model_selection import KFold, cross_validate
+
+from sklearn.decomposition import PCA
+from sklearn.svm import SVC
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 class MLModel:
@@ -38,14 +46,12 @@ class MLModel:
 
             self._csp_lda(eeg)
 
+        elif model_type.lower() == 'svm':
+            self._svm(eeg)
         else:
-
             raise NotImplementedError(f'The model type `{model_type}` is not implemented yet')
 
-    def _csp_lda(self, eeg: EEG):
-
-        print('Training CSP & LDA model')
-
+    def create_epoch_array(self, eeg: EEG):
         # convert data to mne.Epochs
         ch_names = eeg.get_board_names()
         ch_types = ['eeg'] * len(ch_names)
@@ -63,6 +69,38 @@ class MLModel:
         # Apply band-pass filter
         epochs.filter(7., 30., fir_design='firwin', skip_by_annotation='edge', verbose=False)
 
+        return epochs
+
+    def _svm(self, eeg: EEG):
+
+        print('Training PCA & SVM model')
+        epochs = self.create_epoch_array(eeg)
+
+        data = epochs.get_data()
+        print(type(data))
+        print(data.shape)
+        # Extract features
+        funcs_params = {'pow_freq_bands__freq_bands': np.array([8, 10, 12.5, 30])}
+        selected_funcs = ['pow_freq_bands', 'variance']
+        data = extract_features(data, eeg.sfreq, selected_funcs, funcs_params)[0]
+
+        # Assemble a classifier
+        pca = PCA(n_components=24)
+        pca.fit(data)
+        data = pca.transform(data)
+
+
+        self.clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))  # kernel='linear',
+        self.clf.fit(data, self.labels)
+        Pipeline(steps=[('standardscaler', StandardScaler()),
+                        ('svc', SVC(gamma='auto'))])
+
+    def _csp_lda(self, eeg: EEG):
+
+        print('Training CSP & LDA model')
+
+        epochs = self.create_epoch_array(eeg)
+
         # Assemble a classifier
         lda = LinearDiscriminantAnalysis()
         csp = CSP(n_components=6, reg=None, log=True, norm_trace=False)
@@ -77,11 +115,15 @@ class MLModel:
         # Prepare the data to MNE functions
         data = data.astype(np.float64)
 
-        # Filter the data ( band-pass only)
+        # Filter the data
         data = mne.filter.filter_data(data, l_freq=8, h_freq=30, sfreq=eeg.sfreq, verbose=False)
+
+        # Laplacian
+        data = eeg.laplacian(data, eeg.get_board_names())
 
         # Predict
         prediction = self.clf.predict(data[np.newaxis])[0]
+
 
         return prediction
 
@@ -96,3 +138,12 @@ class MLModel:
         # Fit with trials and labels
         self._csp_lda(eeg)
 
+    def cross_validation(self, eeg: EEG):
+        epochs = self.create_epoch_array(eeg)
+
+        n_splits = 5
+        kf = KFold(n_splits=n_splits, shuffle=True)
+        # scoring = ('r2', 'neg_mean_squared_error')
+
+        cv_results = cross_validate(self.clf, epochs.get_data(), self.labels, cv=kf, scoring='accuracy', return_train_score=False)
+        print(cv_results)
