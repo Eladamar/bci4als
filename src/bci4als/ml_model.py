@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from mne.channels import make_standard_montage
 from mne.decoding import CSP
-from mne_features.feature_extraction import extract_features
+from mne_features.feature_extraction import FeatureExtractor
 
 from nptyping import NDArray
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -54,6 +54,7 @@ class MLModel:
     def create_epoch_array(self, eeg: EEG):
         # convert data to mne.Epochs
         ch_names = eeg.get_board_names()
+        print(ch_names)
         ch_types = ['eeg'] * len(ch_names)
         sfreq: int = eeg.sfreq
         n_samples: int = min([t.shape[1] for t in self.trials])
@@ -77,23 +78,21 @@ class MLModel:
         epochs = self.create_epoch_array(eeg)
 
         data = epochs.get_data()
-        print(type(data))
-        print(data.shape)
-        # Extract features
-        funcs_params = {'pow_freq_bands__freq_bands': np.array([8, 10, 12.5, 30])}
+
+        # for feature extraction
         selected_funcs = ['pow_freq_bands', 'variance']
-        data = extract_features(data, eeg.sfreq, selected_funcs, funcs_params)[0]
 
         # Assemble a classifier
-        pca = PCA(n_components=24)
-        pca.fit(data)
-        data = pca.transform(data)
+        # pca = PCA(n_components=24)
+        # pca.fit(data)
+        # data = pca.transform(data)
 
 
-        self.clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))  # kernel='linear',
+        self.clf = make_pipeline(FeatureExtractor(sfreq=eeg.sfreq,
+                                         selected_funcs=selected_funcs),
+                                 StandardScaler(),
+                                 SVC(gamma='auto'))
         self.clf.fit(data, self.labels)
-        Pipeline(steps=[('standardscaler', StandardScaler()),
-                        ('svc', SVC(gamma='auto'))])
 
     def _csp_lda(self, eeg: EEG):
 
@@ -138,10 +137,9 @@ class MLModel:
         # Fit with trials and labels
         self._csp_lda(eeg)
 
-    def cross_validation(self, eeg: EEG):
+    def cross_validation(self, eeg: EEG, n_splits: int = 5):
         epochs = self.create_epoch_array(eeg)
 
-        n_splits = 5
         kf = KFold(n_splits=n_splits, shuffle=True)
         # scoring = ('r2', 'neg_mean_squared_error')
 
