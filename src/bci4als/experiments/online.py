@@ -42,9 +42,9 @@ class OnlineExperiment(Experiment):
 
     def __init__(self, eeg: EEG, model: MLModel, num_trials: int,
                  buffer_time: float, threshold: int, skip_after: Union[bool, int] = False,
-                 co_learning: bool = False, debug=False):
+                 co_learning: bool = False, debug=False, classes: tuple = (0,1,2,3,4)):
 
-        super().__init__(eeg, num_trials)
+        super().__init__(eeg, num_trials, classes)
         # experiment params
         self.experiment_type = "Online"
         self.threshold: int = threshold

@@ -19,9 +19,9 @@ class OfflineExperiment(Experiment):
 
     def __init__(self, eeg: EEG, num_trials: int, trial_length: float,
                  next_length: float = 1, cue_length: float = 0.25, ready_length: float = 1,
-                 full_screen: bool = False, audio: bool = False):
+                 full_screen: bool = False, audio: bool = False, classes: tuple = (0,1,2,3,4)):
 
-        super().__init__(eeg, num_trials)
+        super().__init__(eeg, num_trials, classes)
         self.experiment_type = "Offline"
         self.window_params: Dict[str, Any] = {}
         self.full_screen: bool = full_screen

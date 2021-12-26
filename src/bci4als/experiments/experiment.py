@@ -14,7 +14,7 @@ from psychopy import event
 
 
 class Experiment:
-    def __init__(self, eeg, num_trials):
+    def __init__(self, eeg, num_trials, classes):
         self.num_trials: int = num_trials
         self.eeg: EEG = eeg
 
@@ -33,7 +33,7 @@ class Experiment:
 
         #     labels
         self.labels = []
-        self._init_labels()
+        self._init_labels(keys=classes)
 
     def run(self):
         pass
