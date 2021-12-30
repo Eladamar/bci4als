@@ -45,6 +45,8 @@ class EEG:
         self.marker_row = self.board.get_marker_channel(self.board_id)
         self.eeg_names = self.get_board_names()
 
+        self.configurations = 'x1030110Xx2030110Xx3030110Xx4030110Xx5030110Xx6030110Xx7030110Xx8030110Xx9030110Xx10030110Xx11030110Xx12030110Xx13131000Xx14131000Xx15131000Xx16131000X'
+
     def extract_trials(self, data: NDArray) -> [List[Tuple], List[int]]:
         """
         The method get ndarray and extract the labels and durations from the data.
@@ -78,6 +80,7 @@ class EEG:
     def on(self):
         """Turn EEG On"""
         self.board.prepare_session()
+        self.board.config_board(self.configurations)
         self.board.start_stream()
 
     def off(self):
