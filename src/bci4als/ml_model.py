@@ -115,11 +115,12 @@ class MLModel:
         data = data.astype(np.float64)
 
         # Filter the data
-        data = mne.filter.filter_data(data, l_freq=8, h_freq=30, sfreq=eeg.sfreq, verbose=False)
+        data = mne.filter.filter_data(data, l_freq=7, h_freq=30, sfreq=eeg.sfreq, verbose=False)
 
         # Laplacian
-        data = eeg.laplacian(data, eeg.get_board_names())
+        # data = eeg.laplacian(data, eeg.get_board_names())
 
+        print(data.shape)
         # Predict
         prediction = self.clf.predict(data[np.newaxis])[0]
 
