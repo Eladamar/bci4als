@@ -112,7 +112,8 @@ class OnlineExperiment(Experiment):
             self.play_sound = True
             if self.play_sound:
                 if prediction == stim:
-                    playsound.playsound(self.audio_success_path)
+                    pass
+                    # playsound.playsound(self.audio_success_path)
 
             # if self.co_learning and (prediction == stim):
             if self.co_learning:
@@ -124,6 +125,7 @@ class OnlineExperiment(Experiment):
             # Reset the clock for the next buffer
             timer.reset()
 
+            print("stim ", stim, "  pred", prediction)
             if stim == prediction:
                 num_tries = 0  # if successful, reset num_tries to 0
             else:
@@ -196,9 +198,11 @@ class OnlineExperiment(Experiment):
             feedback = Feedback(self.win, stim, self.buffer_time, self.threshold)
 
             # Use different thread for online learning of the model
-            threading.Thread(target=self._learning_model,
+            t = threading.Thread(target=self._learning_model,
                              args=(feedback, stim), daemon=True).start()
-
+            # t.start()
+            # t.join()
+            # self._learning_model(feedback, stim)
             # Maintain visual feedback on screen
             timer = core.Clock()
 
